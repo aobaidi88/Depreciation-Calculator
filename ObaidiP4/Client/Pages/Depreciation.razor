@@ -1,0 +1,148 @@
+﻿@page "/depreciations"
+@using ObaidiP4.Shared
+
+<h1 style="font-family:'Bookman Old Style'; font-size:x-large">Depreciation Calculator</h1>
+<EditForm OnValidSubmit="CalcDepreciation"
+          Model="@ClassMenu">
+    <DataAnnotationsValidator />
+    <div class="form-group row mb-1">
+        <label class="col-sm-3 col-form-label"
+               for="StartValue">Start Value: </label>
+        <div class="col-sm-9">
+            <input type="number" class="form-control" @bind="@startValue" />
+        </div>
+    </div>
+    <div class="form-group row mb-1">
+        <label class="col-sm-3 col-form-label"
+               for="SalvageValue">Salvage Value:</label>
+        <div class="col-sm-9">
+            <input type="number" class="form-control" @bind="@salvageValue" />
+        </div>
+    </div>
+    <div class="form-group row mb-1">
+        <label class="col-sm-3 col-form-label"
+               for="LifeTime">Estimated Life Time of Asset:</label>
+        <div class="col-sm-9">
+            <input type="number" class="form-control" @bind="@lifeTime" />
+        </div>
+    </div>
+    <div class="form-group row mb-1">
+        <label class="col-sm-3 col-form-label"
+               for="Age">Age of Aseet in Years:</label>
+        <div class="col-sm-9">
+            <input type="number" class="form-control" @bind="@age" />
+        </div>
+    </div>
+
+    <div class="form-group row mb-1">
+        <label class="col-sm-3 col-form-label">Type of Depreciation</label>
+        <div class="col-sm-9">
+            @foreach (var type in ClassMenu.DepreciationType)
+            {
+                <input type="radio" name="depreciationType" value="@type" id="@(type)"
+                       checked="@(radioValue.Equals(type, StringComparison.OrdinalIgnoreCase))" @onchange="OnChange" />
+                <label for="@type">@type</label>
+            }
+        </div>
+    </div>
+    <div class="form-group mb-0">
+        <button type="submit"
+                id="BtnRegister" class="btn btn-primary">
+            Calculate
+        </button>
+        <button class="btn btn-success" type="reset"
+                @onclick="@(() => Clear())">
+            Clear
+        </button>
+    </div>
+    <div>
+        <label style="padding:5px"> Result: @summary </label>
+    </div>
+    <div>
+        <LineChart InputLabels="@radioValue"
+                   InputSeries1="@dataStr"
+                   XAxisLabels="@yearsStr"> </LineChart>
+    </div>
+</EditForm>
+
+@code {
+
+    private BaseClass ClassMenu = new BaseClass();
+    private double startValue, salvageValue, num2;
+    private int age, lifeTime;
+    private string summary, radioValue = " ";
+    private string dataStr = "", yearsStr = "";
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        CalcDepreciation();
+        Clear();
+        StateHasChanged();
+    }
+
+    private void OnChange(ChangeEventArgs args)
+    {
+        radioValue = args.Value.ToString();
+    }
+
+    private void CalcDepreciation()
+    {
+        List<int> yearsList = new List<int>();
+        List<double> data = new List<double>();
+        double x = (startValue / 100.0);
+
+        for (int i = 0; i <= age; ++i)
+        {
+            yearsList.Add(i);
+        }
+        yearsStr = String.Join(',', yearsList);
+        data.Add(x);
+        num2 = startValue;
+
+        if (radioValue == "Straight Line")
+        {
+            for (int i = 0; i < age; i++)
+            {
+                num2 -= ((startValue - salvageValue) * (1.0 / lifeTime));
+                data.Add(num2 / 100.0);
+            }
+            ClassMenu.DepreciationStraightLine.StartValue = startValue;
+            ClassMenu.DepreciationStraightLine.SalvageValue = salvageValue;
+            ClassMenu.DepreciationStraightLine.LifeTime = lifeTime;
+            ClassMenu.DepreciationStraightLine.Age = age;
+            summary = ClassMenu.DepreciationStraightLine.ToString() + radioValue;
+        }
+        else if (radioValue == "Double Declining")
+        {
+            double balance;
+            balance = (((1.0 / lifeTime) * 2) * startValue);
+            for (int i = 0; i < age; i++)
+            {
+                num2 -= balance;
+                balance = (num2 * ((1.0 / lifeTime) * 2));
+                data.Add(num2 / 100.0);
+            }
+            ClassMenu.DepreciationDoubleDeclining.StartValue = startValue;
+            ClassMenu.DepreciationDoubleDeclining.SalvageValue = salvageValue;
+            ClassMenu.DepreciationDoubleDeclining.LifeTime = lifeTime;
+            ClassMenu.DepreciationDoubleDeclining.Age = age;
+            summary = ClassMenu.DepreciationDoubleDeclining.ToString() + radioValue;
+        }
+        else
+        {
+            summary = "You must be select the depreciation type";
+        }
+        dataStr = String.Join(',', data);
+    }
+
+    private void Clear()
+    {
+        startValue = default;
+        salvageValue = default;
+        age = default;
+        lifeTime = default;
+        summary = default;
+    }
+}
+
